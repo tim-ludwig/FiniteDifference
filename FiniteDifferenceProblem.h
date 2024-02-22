@@ -60,7 +60,8 @@ public:
                         if (!IS_INNER_NODE(otherRow, otherCol)) {
                             b(NODE_IDX(row, col)) -= stencil(i, j) * _boundary(X_COORD(otherCol), Y_COORD(otherRow));
                         } else {
-                            a.insert(NODE_IDX(row, col), NODE_IDX(otherRow, otherCol)) = stencil(i, j);
+                            if (stencil(i, j) != 0)
+                                a.insert(NODE_IDX(row, col), NODE_IDX(otherRow, otherCol)) = stencil(i, j);
                         }
                     }
                 }
