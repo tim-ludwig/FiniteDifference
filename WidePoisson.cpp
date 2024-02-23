@@ -59,7 +59,9 @@ Eigen::MatrixXd solve(double h, std::function<double(double,double)> f) {
                 a.coeffRef(NODE_IDX(row, col), NODE_IDX(3, col)) -= 1;
                 b(NODE_IDX(row, col)) += (f(X_COORD(0), Y_COORD(col)) + f(X_COORD(1), Y_COORD(col)) + f(X_COORD(2), Y_COORD(col))) / 9;
             } else if (row == lastInnerRow) {
-
+                a.coeffRef(NODE_IDX(row, col), NODE_IDX(row, col)) += 2;
+                a.coeffRef(NODE_IDX(row, col), NODE_IDX(rows - 3, col)) -= 1;
+                b(NODE_IDX(row, col)) += (f(X_COORD(rows), Y_COORD(col)) + f(X_COORD(rows - 11), Y_COORD(col)) + f(X_COORD(rows - 2), Y_COORD(col))) / 9;
             }
 
             if (col == firstInnerCol) {
@@ -67,7 +69,9 @@ Eigen::MatrixXd solve(double h, std::function<double(double,double)> f) {
                 a.coeffRef(NODE_IDX(row, col), NODE_IDX(row, 3)) -= 1;
                 b(NODE_IDX(row, col)) += (f(X_COORD(row), Y_COORD(0)) + f(X_COORD(row), Y_COORD(1)) + f(X_COORD(row), Y_COORD(2))) / 9;
             } else if (col == lastInnerCol) {
-
+                a.coeffRef(NODE_IDX(row, col), NODE_IDX(row, col)) += 2;
+                a.coeffRef(NODE_IDX(row, col), NODE_IDX(row, cols - 3)) -= 1;
+                b(NODE_IDX(row, col)) += (f(X_COORD(row), Y_COORD(cols)) + f(X_COORD(row), Y_COORD(cols - 1)) + f(X_COORD(row), Y_COORD(cols - 2))) / 9;
             }
 
             // apply common factor to rhs vector
