@@ -1,23 +1,19 @@
 #include <Eigen/Sparse>
 #include <functional>
 #include <iostream>
+#include <fstream>
 
 #include "Boundary.h"
 
-typedef struct {
-    Eigen::SparseMatrix<double, Eigen::RowMajor> a;
-    Eigen::VectorXd b;
-} System;
+Eigen::MatrixXd solve(double h, std::function<double(double,double)> f) {
+    static Eigen::Matrix<double, 5, 5> stencil{
+        {0,   0,   1,   0, 0},
+        {0,   0, -16,   0, 0},
+        {1, -16,  60, -16, 1},
+        {0,   0, -16,   0, 0},
+        {0,   0,   1,   0, 0},
+    };
 
-Eigen::Matrix<double, 5, 5> stencil{
-    {0,   0,   1,   0, 0},
-    {0,   0, -16,   0, 0},
-    {1, -16,  60, -16, 1},
-    {0,   0, -16,   0, 0},
-    {0,   0,   1,   0, 0},
-};
-
-System generateSystem(std::function<double(double,double)> f, double h) {
     int rows = 1 / h + 1;
     int cols = 1 / h + 1;
 
@@ -81,7 +77,25 @@ System generateSystem(std::function<double(double,double)> f, double h) {
 
     a.makeCompressed();
 
-    return System{a, b};
+    Eigen::SparseLU<Eigen::SparseMatrix<double, Eigen::RowMajor>, Eigen::NaturalOrdering<int>> solver;
+    solver.compute(a);
+    if (solver.info() != Eigen::Success) { std::cerr << "solver::compute failed" << std::endl; }
+    Eigen::VectorXd x = solver.solve(b);
+    if (solver.info() != Eigen::Success) { std::cerr << "solver::solve failed" << std::endl; }
+    Eigen::MatrixXd solution{rows, cols};
+
+    for (int row = 0; row < rows; ++row) {
+        for (int col = 0; col < cols; ++col) {
+            // add boundary values to solution matrix
+            if (!IS_INNER_NODE(row, col))  {
+                solution(row, col) = 0;
+            } else {
+                solution(row, col) = x(NODE_IDX(row, col));
+            }
+        }
+    }
+
+    return solution;
 
     #undef NODE_IDX
     #undef IS_INNER_NODE
@@ -90,10 +104,18 @@ System generateSystem(std::function<double(double,double)> f, double h) {
 }
 
 int main() {
-    System s = generateSystem([](double x, double y) {
+    Eigen::MatrixXd u = solve(1.0 / 6, [](double x, double y) {
         return 2 * M_PI * M_PI * sin(M_PI * x) * sin(M_PI * y);
-    }, 1.0 / 6);
+    });
 
-    Eigen::IOFormat cleanFormat(0, 0, " ", "\n");
-    std::cout << s.a.toDense().format(cleanFormat) << std::endl;
+    Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCols, ",", "\n");
+    std::ofstream file("simulation/poissonWide.csv");
+    if (!file.is_open()) {
+        std::cerr << "Opening file for writing failed." << std::endl;
+        std::exit(1);
+    }
+
+    file << u.format(CSVFormat);
+    file.close();
+    std::cout << "Done." << std::endl;
 }
