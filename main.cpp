@@ -148,12 +148,12 @@ int main() {
 
     std::cout << "Poisson five point stencil" << std::endl;
     FiniteDifferenceProblem poisson5 = generatePoissonProblemFivePointStencil();
-    solveProblem(poisson5, 1.0 / 6, 1.0 / 6, "poisson5.csv");
+    solveProblem(poisson5, 0.05, 0.05, "poisson5.csv");
     std::cout << std::endl;
 
     std::cout << "Poisson nine point stencil" << std::endl;
     FiniteDifferenceProblem poisson9 = generatePoissonProblemNinePointStencil();
-    solveProblem(poisson9, 1.0 / 6, 1.0 / 6, "poisson9.csv");
+    solveProblem(poisson9, 0.05, 0.05, "poisson9.csv");
     std::cout << std::endl;
     
     std::cout << "Transport" << std::endl;

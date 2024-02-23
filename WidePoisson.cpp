@@ -112,7 +112,7 @@ Eigen::MatrixXd solve(double h, std::function<double(double,double)> f) {
 }
 
 int main() {
-    Eigen::MatrixXd u = solve(1.0 / 6, [](double x, double y) {
+    Eigen::MatrixXd u = solve(0.05, [](double x, double y) {
         return 2 * M_PI * M_PI * sin(M_PI * x) * sin(M_PI * y);
     });
 

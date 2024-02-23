@@ -44,17 +44,17 @@ def plotAnimate(name, xStep, yStep, duration=5):
     plt.show()
 
 
-#plot3d('heatflow', 0.002, 0.01)
-#plotAnimate('heatflow', 0.002, 0.01)
+plot3d('heatflow', 0.002, 0.01)
+plotAnimate('heatflow', 0.002, 0.01)
 
-#plot3d('heatflowCN', 0.002, 0.01)
-#plotAnimate('heatflowCN', 0.002, 0.01)
+plot3d('heatflowCN', 0.002, 0.01)
+plotAnimate('heatflowCN', 0.002, 0.01)
 
-#plot3d('poisson5', 1.0 / 6, 1.0 / 6)
+plot3d('poisson5', 0.05, 0.05)
 
-plot3d('poisson9', 1.0 / 6, 1.0 / 6)
+plot3d('poisson9', 0.05, 0.05)
 
-plot3d('poissonWide', 1.0 / 6, 1.0 / 6)
+plot3d('poissonWide', 0.05, 0.05)
 
-#plot3d('transport', 0.002, 0.01)
-#plotAnimate('transport', 0.002, 0.01)
+plot3d('transport', 0.002, 0.01)
+plotAnimate('transport', 0.002, 0.01)
