@@ -2,3 +2,4 @@ simulation/
 *.exe
 .vscode/
 *.pdf
+*.typ
