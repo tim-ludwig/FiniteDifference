@@ -138,13 +138,15 @@ FiniteDifferenceProblem generatePoissonProblemNinePointStencil() {
 int main() {
     std::cout << "Heatflow" << std::endl;
     FiniteDifferenceProblem heatFlowProblem = generateHeatFlowProblem();
-    solveProblem(heatFlowProblem, 0.002, 0.01, "heatflow.csv");
+    solveProblem(heatFlowProblem, 0.001, 0.01, "heatflow.csv");
     std::cout << std::endl;
 
+/*
     std::cout << "Heatflow Crank Nicolson" << std::endl;
     FiniteDifferenceProblem heatFlowCrankNicolsonProblem = generateHeatFlowCrankNicolsonProblem();
     solveProblem(heatFlowCrankNicolsonProblem, 0.002, 0.01, "heatflowCN.csv");
     std::cout << std::endl;
+*/
 
     std::cout << "Poisson five point stencil" << std::endl;
     FiniteDifferenceProblem poisson5 = generatePoissonProblemFivePointStencil();
@@ -158,6 +160,6 @@ int main() {
     
     std::cout << "Transport" << std::endl;
     FiniteDifferenceProblem transportProblem = generateTransportProblem();
-    solveProblem(transportProblem, 0.002, 0.01, "transport.csv");
+    solveProblem(transportProblem, 0.001, 0.01, "transport.csv");
     std::cout << std::endl;
 }
