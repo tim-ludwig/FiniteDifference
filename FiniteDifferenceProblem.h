@@ -3,66 +3,67 @@
 
 #include <functional>
 #include <Eigen/Sparse>
-#include "Boundary.h"
+#include "BoundaryCondition.h"
 #include "Stencil.h"
 #include "FiniteDifferenceSystem.h"
 
 class FiniteDifferenceProblem {
 private:
-    Boundary _boundary;
-    std::function<Stencil(double, double)> _stencilGenerator;
-    std::function<double(double, double)> _f;
+    Domain _domain;
+    BoundaryConditions _boundaryConditions;
+    Stencil::Generator _innerGenerator;
 
 public:
-    FiniteDifferenceProblem(Boundary boundary, std::function<Stencil(double, double)> stencilGenerator, std::function<double(double, double)> f=[](double x, double y) { return 0; })
-    : _boundary{boundary},
-      _stencilGenerator{stencilGenerator},
-      _f{f}
+    FiniteDifferenceProblem(Domain domain, BoundaryConditions boundaryConditions, Stencil::Generator innerGenerator)
+    : _domain{domain},
+      _boundaryConditions{boundaryConditions},
+      _innerGenerator{innerGenerator}
     {
     
     }
 
     FiniteDifferenceSystem prepareSystem(double xStep, double yStep) const {
-        Stencil stencil = _stencilGenerator(xStep, yStep);
+        Stencil innerStencil = _innerGenerator(xStep, yStep);
+        std::optional<Stencil> leftStencil = _boundaryConditions.generateLeft(xStep, yStep);
+        std::optional<Stencil> rightStencil = _boundaryConditions.generateRight(xStep, yStep);
+        std::optional<Stencil> topStencil = _boundaryConditions.generateTop(xStep, yStep);
+        std::optional<Stencil> bottomStencil = _boundaryConditions.generateBottom(xStep, yStep);
         
-        int rows = (_boundary.ymax() - _boundary.ymin()) / yStep + 1;
-        int cols = (_boundary.xmax() - _boundary.xmin()) / xStep + 1;
+        int rows = (_domain.ymax - _domain.ymin) / yStep + 1;
+        int cols = (_domain.xmax - _domain.xmin) / xStep + 1;
 
-        int firstInnerRow = stencil.rowOffset() > 0 ? 1 : 0;
-        int firstInnerCol = stencil.colOffset() > 0 ? 1 : 0;
-
-        int lastInnerRow = stencil.rowOffset() < stencil.rows() - 1 ? rows - 2 : rows - 1;
-        int lastInnerCol = stencil.colOffset() < stencil.cols() - 1 ? cols - 2 : cols - 1;
-
-        int numInnerRows = lastInnerRow - firstInnerRow + 1;
-        int numInnerCols = lastInnerCol - firstInnerCol + 1;
-
-        int n = numInnerRows * numInnerCols;
+        int n = rows * cols;
 
         Eigen::SparseMatrix<double, Eigen::RowMajor> a{n, n};
-        a.reserve(Eigen::VectorXi::Constant(n, stencil.nonZeros()));
+        a.reserve(Eigen::VectorXi::Constant(n, innerStencil.nonZeros()));
         Eigen::VectorXd b{n};
 
-        #define NODE_IDX(row, col) (((row) - firstInnerRow) * numInnerCols + (col) - firstInnerCol)
-        #define IS_INNER_NODE(row, col) ((firstInnerRow <= (row) && (row) <= lastInnerRow) && (firstInnerCol <= (col) && (col) <= lastInnerCol))
-        #define X_COORD(col) (_boundary.xmin() + xStep * (col))
-        #define Y_COORD(row) (_boundary.ymin() + yStep * (row))
+        #define NODE_IDX(row, col) ((row) * cols + (col))
+        #define X_COORD(col) (_domain.xmin + (col) * xStep)
+        #define Y_COORD(row) (_domain.ymin + (row) * yStep)
 
-        // for each inner node
-        for (int row = firstInnerRow; row <= lastInnerRow; ++row) {
-            for (int col = firstInnerCol; col <= lastInnerCol; ++col) {
-                b(NODE_IDX(row, col)) = stencil.commonCoeff() * _f(X_COORD(col), Y_COORD(row));
+        // for each node
+        for (int row = 0; row < rows; ++row) {
+            for (int col = 0; col < cols; ++col) {
+                // TODO select appropriate stencil form problem statement / boundaries
+                Stencil* stencil = &innerStencil;
 
-                // for each neighbour in the stencil
-                for (int i = 0, otherRow = row - stencil.rowOffset(); i < stencil.rows(); ++i, ++otherRow) {
-                    for (int j = 0, otherCol = col - stencil.colOffset(); j < stencil.cols(); ++j, ++otherCol) {
-                        // eliminate boundary conditions
-                        if (!IS_INNER_NODE(otherRow, otherCol)) {
-                            b(NODE_IDX(row, col)) -= stencil(i, j) * _boundary(X_COORD(otherCol), Y_COORD(otherRow));
-                        } else {
-                            if (stencil(i, j) != 0)
-                                a.insert(NODE_IDX(row, col), NODE_IDX(otherRow, otherCol)) = stencil(i, j);
-                        }
+                if (row == 0 && bottomStencil) {
+                    stencil = &*bottomStencil;
+                } else if (col == 0 && leftStencil) {
+                    stencil = &*leftStencil;
+                } else if (col == cols - 1 && rightStencil) {
+                    stencil = &*rightStencil;
+                } else if (row == rows - 1 && topStencil) {
+                    stencil = &*topStencil;
+                }
+
+                // apply the stencil
+                b(NODE_IDX(row, col)) = stencil->rhs(X_COORD(col), Y_COORD(row));
+                for (int i = 0, otherRow = row - stencil->rowOffset(); i < stencil->rows(); ++i, ++otherRow) {
+                    for (int j = 0, otherCol = col - stencil->colOffset(); j < stencil->cols(); ++j, ++otherCol) {
+                        if ((*stencil)(i, j) != 0)
+                            a.insert(NODE_IDX(row, col), NODE_IDX(otherRow, otherCol)) = (*stencil)(i, j);
                     }
                 }
             }
@@ -70,10 +71,9 @@ public:
 
         a.makeCompressed();
 
-        return FiniteDifferenceSystem{_boundary, xStep, yStep, rows, cols, firstInnerRow, lastInnerRow, firstInnerCol, lastInnerCol, a, b};
+        return FiniteDifferenceSystem{rows, cols, a, b};
 
         #undef NODE_IDX
-        #undef IS_INNER_NODE
         #undef X_COORD
         #undef Y_COORD
     }

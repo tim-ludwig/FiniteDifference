@@ -1,4 +1,5 @@
+#include "Domain.h"
 #include "Stencil.h"
-#include "Boundary.h"
+#include "BoundaryCondition.h"
 #include "FiniteDifferenceProblem.h"
 #include "FiniteDifferenceSystem.h"
