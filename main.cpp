@@ -29,8 +29,8 @@ void solveProblem(FiniteDifferenceProblem& problem, double xStep, double yStep, 
     } else {
         file << solution.format(CSVFormat);
         file.close();
+        std::cout << "Done." << std::endl;
     }
-    std::cout << "Done." << std::endl;
 }
 
 FiniteDifferenceProblem generateHeatFlowProblem() {
