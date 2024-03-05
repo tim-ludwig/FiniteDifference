@@ -73,10 +73,8 @@ FiniteDifferenceProblem generateHeatFlowProblem() {
         }
     };
 
-    Domain d{0, 1, 0, 1};
     BoundaryConditions b{left, right, initial, std::optional<Stencil::Generator>{}};
-
-    return FiniteDifferenceProblem{d, b, stencilGen};
+    return FiniteDifferenceProblem{Domain{0, 1, 0, 1}, b, stencilGen};
 }
 
 int main() {
